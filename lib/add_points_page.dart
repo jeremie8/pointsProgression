@@ -6,49 +6,52 @@ import 'Activity.dart';
 
 class AddPointsPage extends StatefulWidget {
   final maxProgress;
+  final Function(int) addToPoints;
+  final int points;
 
-  const AddPointsPage({Key key, this.maxProgress}) : super(key: key);
+  const AddPointsPage({Key key, this.maxProgress, this.addToPoints, this.points}) : super(key: key);
 
   @override
   State<StatefulWidget> createState() => _AddPointsState();
 }
 
 class _AddPointsState extends State<AddPointsPage> {
-  int _progression = 0;
+  int _dailyProgression = 0;
+  final String _dpString = "dailyProgression";
 
   @override
   void initState() {
     super.initState();
-    _loadCounter();
+    _loadDailyProgression();
   }
 
-  _resetProgression() async {
+  _resetDailyProgression() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _progression = 0;
-      prefs.setInt('progression', _progression);
+      _dailyProgression = 0;
+      prefs.setInt(_dpString, _dailyProgression);
     });
   }
 
-  //Loading progression value on start
-  _loadCounter() async {
+  _loadDailyProgression() async {
     SharedPreferences prefs = await SharedPreferences.getInstance();
     setState(() {
-      _progression = (prefs.getInt('progression') ?? 0);
+      _dailyProgression = (prefs.getInt(_dpString) ?? 0);
     });
   }
 
-  double percent() => _progression > widget.maxProgress
+  void _incrementDailyProgression(int value) async {
+    SharedPreferences prefs = await SharedPreferences.getInstance();
+    setState(() {
+      widget.addToPoints(value);
+      _dailyProgression = (prefs.getInt(_dpString) ?? 0) + value;
+      prefs.setInt(_dpString, _dailyProgression);
+    });
+  }
+
+  double percent() => _dailyProgression > widget.maxProgress
       ? 1.0
-      : _progression / widget.maxProgress;
-
-  void _incrementCounter(int value) async {
-    SharedPreferences prefs = await SharedPreferences.getInstance();
-    setState(() {
-      _progression = (prefs.getInt('progression') ?? 0) + value;
-      prefs.setInt('progression', _progression);
-    });
-  }
+      : _dailyProgression / widget.maxProgress;
 
   @override
   Widget build(BuildContext context) {
@@ -59,8 +62,8 @@ class _AddPointsState extends State<AddPointsPage> {
         children: <Widget>[
           FlatButton(
             color: Colors.red,
-            child: Text("Reset"),
-            onPressed: _resetProgression,
+            child: Text("Reset daily progress"),
+            onPressed: _resetDailyProgression,
           ),
           Expanded(
             flex: 3,
@@ -69,8 +72,8 @@ class _AddPointsState extends State<AddPointsPage> {
               lineWidth: 5.0,
               percent: percent(),
               center: Text(percent() >= 1.0
-                  ? "Done ($_progression / ${widget.maxProgress})"
-                  : "$_progression / ${widget.maxProgress}"),
+                  ? "Done ($_dailyProgression / ${widget.maxProgress})"
+                  : "$_dailyProgression / ${widget.maxProgress}"),
               progressColor: percent() >= 1.0 ? Colors.green : Colors.red,
             ),
           ),
@@ -82,15 +85,15 @@ class _AddPointsState extends State<AddPointsPage> {
                   Activity(
                       text: "30 minutes de chimie",
                       value: 25,
-                      callback: _incrementCounter),
+                      callback: _incrementDailyProgression),
                   Activity(
                       text: "30 minutes de biologie",
                       value: 25,
-                      callback: _incrementCounter),
+                      callback: _incrementDailyProgression),
                   Activity(
                       text: "30 minutes de physique",
                       value: 30,
-                      callback: _incrementCounter),
+                      callback: _incrementDailyProgression),
                 ],
               ),
             ),
